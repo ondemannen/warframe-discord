@@ -4,15 +4,15 @@ require 'open-uri'
 require 'net/http'
 require 'json'
 
-search = ARGV[0]
-discordid = ARGV[1] && ARGV[1].match(/discord/) ? true : false
+discordid = ARGV[0] && ARGV[0].match(/discord/) ? true : false
+search = ARGV[1]
 
 url = "http://content.warframe.com/dynamic/rss.php?#{Random.new_seed}"
 
-discord_webhook = nil
+@discord_webhook = nil
 if File.exist?(File.expand_path("~/etc/wf-discord.cfg"))
 	# Create the file in ~/etc and just copy the prowl API key into it
-	discord_webhook = File.open(File.expand_path("~/etc/wf-discord.cfg")).read.chomp
+	@discord_webhook = File.open(File.expand_path("~/etc/wf-discord.cfg")).read.chomp
 end
 
 done = []
@@ -51,28 +51,34 @@ def pretty_colors(str)
 end
 
 def send_message(data)
-	uri = URI(discord_webhook)
-	req = Net::HTTP::Post.new(uri, 'Content-Type' => 'application/json')
+	uri = URI(@discord_webhook)
+	http = Net::HTTP.new(uri.host, uri.port)
+	http.use_ssl = true
+	req = Net::HTTP::Post.new(uri.path, 'Content-Type' => 'application/json')
 	req.body = data.to_json
-	res = Net::HTTP.start(uri.hostname, uri.port) do |http|
-		http.request(req)
-	end
+	res = http.request(req)
+	puts "response #{res.body}"
 end
 
 open(url) do |rss|
 	feed = RSS::Parser.parse(rss)
 	feed.items.each do |item|
 		data = {}
-		data['content'] = sprintf("```\n%s (%s)```", item.author, item.title)
-		send_message(data)
-		exit 0
+		data['content'] = sprintf("```%s (%s)```", item.author, item.title)
+		guid = item.guid.to_s.gsub(/<.*?>(.*)<.*?>/,'\1')
 		if !search
 			printf("%s (%s)\n", item.author, pretty_colors(item.title))
+			if @discord_webhook && discordid
+				if(!done.include?(guid))
+					send_message(data)
+					@fn.puts guid
+				end
+			end
 			next
 		elsif item.title.match(/#{search}/i)
-			guid = item.guid.to_s.gsub(/<.*?>(.*)<.*?>/,'\1')
-			if discord_webhook && discordid
+			if @discord_webhook && discordid
 				if(!done.include?(guid))
+					send_message(data)
 					#cmd.gsub(/_TEXT_/,item.title).gsub(/_EVENT_/,item.author)}
 					@fn.puts guid
 				end

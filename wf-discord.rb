@@ -64,7 +64,7 @@ open(url) do |rss|
 	feed = RSS::Parser.parse(rss)
 	feed.items.each do |item|
 		data = {}
-		data['content'] = sprintf("```%s (%s)```", item.author, item.title)
+		data['content'] = sprintf("```%s - %s```", item.author, item.title)
 		guid = item.guid.to_s.gsub(/<.*?>(.*)<.*?>/,'\1')
 		if !search
 			printf("%s (%s)\n", item.author, pretty_colors(item.title))

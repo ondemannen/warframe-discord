@@ -11,7 +11,7 @@ url = "http://content.warframe.com/dynamic/rss.php?#{Random.new_seed}"
 
 @discord_webhook = nil
 if File.exist?(File.expand_path("~/etc/wf-discord.cfg"))
-	# Create the file in ~/etc and just copy the prowl API key into it
+	# Create the file in ~/etc and just copy the discord webhook URL into it
 	@discord_webhook = File.open(File.expand_path("~/etc/wf-discord.cfg")).read.chomp
 end
 
